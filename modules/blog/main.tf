@@ -14,6 +14,7 @@ data "aws_ami" "app_ami" {
   owners = [var.ami_filter.owner] 
 }
 
+
 module "blog_vpc" {
   source = "terraform-aws-modules/vpc/aws"
 
@@ -22,8 +23,6 @@ module "blog_vpc" {
 
   azs             = ["us-east-1a", "us-east-1b", "us-east-1c"]
   public_subnets  = ["${var.environment.network_prefix}.101.0/24", "${var.environment.network_prefix}.102.0/24", "${var.environment.network_prefix}.103.0/24"]
-
-  enable_nat_gateway = true
   
   tags = {
     Terraform = "true"
@@ -31,19 +30,18 @@ module "blog_vpc" {
   }
 }
 
+
 module "blog_autoscaling" {
   source  = "terraform-aws-modules/autoscaling/aws"
   version = "6.5.2"
 
   name = "${var.environment.name}-blog"
   
-  min_size = var.asg_min_size
-  max_size = var.asg_max_size
-
+  min_size            = var.asg_min_size
+  max_size            = var.asg_max_size
   vpc_zone_identifier = module.blog_vpc.public_subnets
   target_group_arns   = module.blog_alb.target_group_arns
-  security_groups = [module.blog_sg.security_group_id]
-
+  security_groups     = [module.blog_sg.security_group_id]
   image_id               = data.aws_ami.app_ami.id
   instance_type          = var.instance_type
 }
@@ -60,7 +58,6 @@ module "blog_alb" {
   subnets            = module.blog_vpc.public_subnets
   security_groups    = [module.blog_sg.security_group_id]
 
-
   target_groups = [
     {
       name_prefix      = "${var.environment.name}-"
@@ -70,7 +67,7 @@ module "blog_alb" {
     }
   ]
 
- http_tcp_listeners = [
+  http_tcp_listeners = [
     {
       port               = 80
       protocol           = "HTTP"
